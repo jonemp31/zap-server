@@ -270,12 +270,52 @@ fi
 sleep 1
 
 # ==========================================================
-# PASSO 3: VIEW ONCE
+# PASSO 3: VIEW ONCE (COM DETECÇÃO DE POPUP VIA OCR)
 # ==========================================================
 if [ "$VIEW_ONCE" = "true" ]; then
     echo "👁️ Ativando View Once..."
     input tap $COORD_BTN_VIEW_ONCE
-    sleep 0.5
+    sleep 0.8
+    
+    # --- OCR: Verificar se popup de privacidade apareceu ---
+    echo "🔍 Verificando popup de privacidade..."
+    
+    SCREENSHOT_PATH="/sdcard/viewonce_check_$RANDOM.png"
+    screencap -p "$SCREENSHOT_PATH" 2>/dev/null
+    
+    if [ -f "$SCREENSHOT_PATH" ]; then
+        # OCR com Tesseract (português)
+        OCR_TEXT=$(tesseract "$SCREENSHOT_PATH" stdout -l por 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        rm -f "$SCREENSHOT_PATH"
+        
+        # Procurar por frases do popup
+        POPUP_DETECTADO=false
+        
+        if echo "$OCR_TEXT" | grep -q "mensagens de visualiza"; then
+            POPUP_DETECTADO=true
+            echo "📋 Popup detectado: 'mensagens de visualização'"
+        elif echo "$OCR_TEXT" | grep -q "fotos, videos ou mensagens"; then
+            POPUP_DETECTADO=true
+            echo "📋 Popup detectado: 'fotos, vídeos ou mensagens'"
+        elif echo "$OCR_TEXT" | grep -q "maior privacidade"; then
+            POPUP_DETECTADO=true
+            echo "📋 Popup detectado: 'maior privacidade'"
+        elif echo "$OCR_TEXT" | grep -q "destinatario nao pode"; then
+            POPUP_DETECTADO=true
+            echo "📋 Popup detectado: 'destinatário não pode'"
+        fi
+        
+        if [ "$POPUP_DETECTADO" = "true" ]; then
+            echo "✅ Fechando popup de privacidade..."
+            sleep 0.5
+            input tap 540 1630  # Botão OK do popup
+            sleep 0.6
+        else
+            echo "✅ Nenhum popup detectado, continuando..."
+        fi
+    else
+        echo "⚠️ Falha ao capturar tela, continuando..."
+    fi
 fi
 
 # ==========================================================

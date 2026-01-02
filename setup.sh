@@ -393,8 +393,18 @@ if [ -n "$EXISTING_TUNNEL" ]; then
     log_warn "Tunnel '$TUNNEL_NAME' já existe!"
     TUNNEL_ID=$(echo "$EXISTING_TUNNEL" | awk '{print $1}')
 else
-    cloudflared tunnel create "$TUNNEL_NAME"
+    # Nota: cloudflared pode crashar com "stack corruption" no Termux mas ainda assim criar o tunnel
+    cloudflared tunnel create "$TUNNEL_NAME" 2>&1 || true
+    sleep 2
+    
+    # Verificar se foi criado mesmo com possível crash
     TUNNEL_ID=$(cloudflared tunnel list 2>/dev/null | grep "$TUNNEL_NAME" | awk '{print $1}')
+    
+    if [ -z "$TUNNEL_ID" ]; then
+        log_error "Falha ao criar tunnel. Tente manualmente: cloudflared tunnel create $TUNNEL_NAME"
+        exit 1
+    fi
+    
     log_success "Tunnel criado: $TUNNEL_ID"
 fi
 
@@ -421,7 +431,8 @@ log_success "config.yml criado!"
 echo ""
 log_info "Configurando DNS: $FULL_HOSTNAME -> $TUNNEL_NAME..."
 
-cloudflared tunnel route dns "$TUNNEL_NAME" "$FULL_HOSTNAME" 2>/dev/null || log_warn "DNS pode já estar configurado"
+# Nota: Também pode crashar com "stack corruption" mas ainda funcionar
+cloudflared tunnel route dns "$TUNNEL_NAME" "$FULL_HOSTNAME" 2>&1 || log_warn "DNS pode já estar configurado ou erro ignorável"
 
 log_success "DNS configurado!"
 

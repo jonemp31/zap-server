@@ -14,7 +14,7 @@ app.use(express.json({ limit: "10mb" }));
 // ============================================================================
 // CONFIGURAÇÕES
 // ============================================================================
-const HOME_PATH = "/data/data/com.termux/files/home/zap-server/scripts";
+const HOME_PATH = "/data/data/com.termux/files/home/zap-server";
 const TERMUX_BASH = "/data/data/com.termux/files/usr/bin/bash";
 const QUEUE_FILE = "queue.json";
 const JOB_TIMEOUT_MS = 180000; // 180s para garantir envio de mídia pesada e processamento

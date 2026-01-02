@@ -311,14 +311,17 @@ app.post("/:userId/texto", (req, res) =>
 );
 
 // ÁUDIO
-app.post("/:userId/audio", (req, res) =>
-    enqueue("gravar_fake.sh", [
-        req.params.userId,
+app.post("/:userId/audio", (req, res) => {
+    const userId = req.params.userId;
+    const script = userId === "0" ? "gravar_fake.sh" : "intent_audio.sh";
+    
+    enqueue(script, [
+        userId,
         String(req.body.arquivo || ""),
         String(req.body.tempo || ""),
         String(req.body.lead || "")
-    ], res)
-);
+    ], res);
+});
 
 // SALVAR CONTATO
 app.post("/:userId/salvarcontato", (req, res) =>

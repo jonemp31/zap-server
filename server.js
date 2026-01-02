@@ -229,9 +229,9 @@ app.get("/state", (req, res) => {
 // ROTAS DE AÇÃO (COM :userId)
 // ============================================================================
 
-// PEGAR NÚMERO
+// PEGAR NÚMERO (PRIORIDADE - FURA FILA)
 app.post("/:userId/numeroWpp", (req, res) =>
-    enqueue("pegar_numero.sh", [req.params.userId], res)
+    enqueue("pegar_numero.sh", [req.params.userId], res, true)
 );
 
 // LIMPAR NOTIFICAÇÕES (ABRIR CONVERSA)

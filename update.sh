@@ -30,7 +30,7 @@ SCRIPTS=(
 )
 
 for script in "${SCRIPTS[@]}"; do
-    if curl -sSL "$REPO_URL/scripts/$script" -o "$script" 2>/dev/null; then
+    if curl -sSL "$REPO_URL/$script" -o "$script" 2>/dev/null; then
         chmod +x "$script"
         echo "✅ $script"
     else

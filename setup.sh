@@ -200,37 +200,78 @@ fi
 echo ""
 log_info "Instalando dependências do sistema..."
 
-PACKAGES=(
-    "termux-tools"
-    "tsu"
+# --- 4.1: Core do Sistema e Root ---
+CORE_PACKAGES=(
+    "bash"
     "coreutils"
+    "util-linux"
+    "procps"
+    "psmisc"
+    "which"
+    "tsu"
+    "android-tools"
+    "termux-api"
+    "termux-tools"
+)
+
+# --- 4.2: Utilitários ---
+UTIL_PACKAGES=(
+    "curl"
+    "wget"
+    "jq"
+    "tmux"
     "findutils"
     "grep"
     "sed"
     "gawk"
-    "curl"
-    "jq"
-    "android-tools"
-    "termux-api"
+)
+
+# --- 4.3: Linguagens ---
+LANG_PACKAGES=(
     "nodejs-lts"
     "python"
+)
+
+# --- 4.4: Mídia e OCR ---
+MEDIA_PACKAGES=(
     "ffmpeg"
     "tesseract"
-    "tmux"
+    "leptonica"
+)
+
+# --- 4.5: Cloudflare ---
+CLOUD_PACKAGES=(
     "cloudflared"
 )
 
-for pkg in "${PACKAGES[@]}"; do
+# Junta todos os pacotes
+ALL_PACKAGES=("${CORE_PACKAGES[@]}" "${UTIL_PACKAGES[@]}" "${LANG_PACKAGES[@]}" "${MEDIA_PACKAGES[@]}" "${CLOUD_PACKAGES[@]}")
+
+for pkg in "${ALL_PACKAGES[@]}"; do
     if dpkg -s "$pkg" &> /dev/null; then
         log_success "$pkg já instalado"
     else
         log_info "Instalando $pkg..."
-        pkg install -y "$pkg"
-        log_success "$pkg instalado!"
+        pkg install -y "$pkg" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            log_success "$pkg instalado!"
+        else
+            log_warn "$pkg não encontrado no repositório (opcional)"
+        fi
     fi
 done
 
-# Tesseract PT-BR (Download direto do GitHub - pkg às vezes falha)
+# --- 4.6: PM2 (via npm) ---
+echo ""
+log_info "Instalando PM2 (Process Manager via npm)..."
+if command -v pm2 &> /dev/null; then
+    log_success "PM2 já instalado!"
+else
+    npm install -g pm2
+    log_success "PM2 instalado!"
+fi
+
+# --- 4.7: Tesseract PT-BR (Download direto do GitHub - pkg às vezes falha) ---
 log_info "Instalando dados do Tesseract (Português)..."
 if [ -f "$PREFIX/share/tessdata/por.traineddata" ]; then
     log_success "Tesseract PT-BR já instalado!"

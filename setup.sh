@@ -255,8 +255,8 @@ log_info "Criando arquivo de configuração..."
 cat > "$INSTALL_DIR/config.json" << 'CONFIGEOF'
 {
     "webhooks": {
-        "data": "https://seu-webhook.com/whatsapp",
-        "clean": "https://seu-webhook.com/limpar"
+        "data": "https://webhook-dev.zapsafe.work/webhook/whatsapp4mumu",
+        "clean": "https://webhook-dev.zapsafe.work/webhook/limparnotificacaozapmu"
     },
     "device": {
         "name": "meu-dispositivo",
@@ -270,7 +270,7 @@ cat > "$INSTALL_DIR/config.json" << 'CONFIGEOF'
 }
 CONFIGEOF
 
-log_success "config.json criado! (Edite com seus webhooks)"
+log_success "config.json criado!"
 
 # ============================================================================
 # PASSO 11: Iniciar Serviços com PM2

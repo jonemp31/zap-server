@@ -239,23 +239,27 @@ app.get("/users", (req, res) => {
                 });
             }
 
-            // Parseia a saída: UserInfo{0:Proprietário:c13} -> extrai o número
-            const users = {};
+            // Parseia a saída: UserInfo{0:Proprietário:c13} -> extrai detalhes completos
+            const users = [];
             const lines = stdout.split('\n');
-            let userCount = 0;
 
             lines.forEach(line => {
-                const match = line.match(/UserInfo\{(\d+):/);
-                if (match && match[1]) {
-                    userCount++;
-                    users[`UserInfo${userCount}`] = parseInt(match[1]);
+                const match = line.match(/UserInfo\{(\d+):([^:]+):([^}]+)\}\s*(running)?/);
+                if (match) {
+                    users.push({
+                        id: parseInt(match[1]),
+                        name: match[2],
+                        flags: match[3],
+                        running: match[4] === 'running'
+                    });
                 }
             });
 
             return res.json({
                 success: true,
-                total: userCount,
-                ...users
+                total: users.length,
+                users: users,
+                raw: stdout.trim()
             });
         }
     );

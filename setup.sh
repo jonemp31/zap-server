@@ -175,6 +175,11 @@ log_info "Atualizando repositórios do Termux..."
 pkg update -y && pkg upgrade -y
 log_success "Repositórios atualizados!"
 
+# Escolher mirror mais rápido
+echo ""
+log_info "Configurando mirror do Termux (escolha o mais próximo)..."
+termux-change-repo || log_warn "termux-change-repo não disponível, continuando..."
+
 # ============================================================================
 # PASSO 3: Configurar Armazenamento
 # ============================================================================
@@ -196,6 +201,7 @@ echo ""
 log_info "Instalando dependências do sistema..."
 
 PACKAGES=(
+    "termux-tools"
     "tsu"
     "coreutils"
     "findutils"
@@ -307,6 +313,11 @@ else
     npm install -g pm2
     log_success "PM2 instalado!"
 fi
+
+# Ativar wake-lock para manter Termux ativo
+echo ""
+log_info "Ativando wake-lock (mantém Termux ativo em background)..."
+termux-wake-lock 2>/dev/null && log_success "Wake-lock ativado!" || log_warn "Wake-lock não disponível"
 
 # ============================================================================
 # PASSO 9: Criar arquivo de configuração
@@ -424,12 +435,14 @@ log_info "Criando scripts de inicialização..."
 cat > "$INSTALL_DIR/start.sh" << EOF
 #!/data/data/com.termux/files/usr/bin/bash
 cd $INSTALL_DIR
-pm2 start server.js --name "zap-server" --time
-pm2 start sentinela.js --name "sentinela" --time
+termux-wake-lock 2>/dev/null
+pm2 start server.js --name "zap-server" --time 2>/dev/null || pm2 restart zap-server
+pm2 start sentinela.js --name "sentinela" --time 2>/dev/null || pm2 restart sentinela
+pm2 start "cloudflared tunnel run $TUNNEL_NAME" --name "cloudflare" --time 2>/dev/null || pm2 restart cloudflare
 pm2 save
-tmux new -ds cf 'cloudflared tunnel run $TUNNEL_NAME'
 echo "✅ Todos os serviços iniciados!"
 echo "📡 API: https://$FULL_HOSTNAME"
+pm2 list
 EOF
 chmod +x "$INSTALL_DIR/start.sh"
 
@@ -437,7 +450,7 @@ chmod +x "$INSTALL_DIR/start.sh"
 cat > "$INSTALL_DIR/stop.sh" << EOF
 #!/data/data/com.termux/files/usr/bin/bash
 pm2 stop all
-tmux kill-session -t cf 2>/dev/null || true
+termux-wake-unlock 2>/dev/null
 echo "🛑 Todos os serviços parados!"
 EOF
 chmod +x "$INSTALL_DIR/stop.sh"
@@ -504,16 +517,10 @@ cd "$INSTALL_DIR"
 pm2 delete all 2>/dev/null || true
 pm2 start server.js --name "zap-server" --time
 pm2 start sentinela.js --name "sentinela" --time
+pm2 start "cloudflared tunnel run $TUNNEL_NAME" --name "cloudflare" --time
 pm2 save
 
-log_success "PM2 iniciado!"
-
-# Iniciar tunnel em background
-log_info "Iniciando Cloudflare Tunnel..."
-tmux kill-session -t cf 2>/dev/null || true
-tmux new -ds cf "cloudflared tunnel run $TUNNEL_NAME"
-
-log_success "Tunnel iniciado em background (tmux session: cf)"
+log_success "PM2 iniciado (server + sentinela + cloudflare)!"
 
 # ============================================================================
 # VERIFICAÇÃO FINAL
@@ -568,7 +575,7 @@ echo "   ./update.sh     # Atualizar do GitHub"
 echo ""
 echo "   pm2 status      # Ver status dos serviços"
 echo "   pm2 logs        # Ver logs em tempo real"
-echo "   tmux a -t cf    # Ver logs do tunnel"
+echo "   pm2 logs cloudflare  # Ver logs do tunnel"
 echo ""
 echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}   Desenvolvido com ❤️  | ZAP SERVER v5.4${NC}"

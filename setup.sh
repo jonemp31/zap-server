@@ -224,12 +224,17 @@ UTIL_PACKAGES=(
     "grep"
     "sed"
     "gawk"
+    "zip"
+    "unzip"
+    "nano"
+    "git"
 )
 
 # --- 4.3: Linguagens ---
 LANG_PACKAGES=(
     "nodejs-lts"
     "python"
+    "python-pip"
 )
 
 # --- 4.4: Mídia e OCR ---

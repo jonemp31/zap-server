@@ -327,6 +327,7 @@ SCRIPTS=(
     "enviar_texto.sh"
     "fazer_ligacao.sh"
     "gravar_fake.sh"
+    "intent_audio.sh"
     "pegar_numero.sh"
     "pix.sh"
     "rejeitacall.sh"
@@ -335,7 +336,7 @@ SCRIPTS=(
 
 log_info "Baixando scripts shell..."
 for script in "${SCRIPTS[@]}"; do
-    if curl -sSL "$REPO_URL/scripts/$script" -o "$INSTALL_DIR/$script" 2>/dev/null; then
+    if curl -sSL "$REPO_URL/$script" -o "$INSTALL_DIR/$script" 2>/dev/null; then
         chmod +x "$INSTALL_DIR/$script"
         log_success "$script baixado!"
     else

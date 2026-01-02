@@ -1,5 +1,5 @@
 // ============================================================================
-// ZAP SERVER v5.4 — Multi-User Edition + Priority Queue
+// ZAP SERVER v5.5 — Multi-User Edition + Priority Queue (Clean)
 // ============================================================================
 
 const fs = require("fs");
@@ -226,21 +226,8 @@ app.get("/state", (req, res) => {
 });
 
 // ============================================================================
-// ROTAS DE AÇÃO (AGORA COM :userId)
+// ROTAS DE AÇÃO (COM :userId)
 // ============================================================================
-
-// VOLTAR
-app.post("/:userId/voltar", (req, res) => 
-    enqueue("voltar.sh", [req.params.userId], res)
-);
-
-// BUSCAR
-app.post("/:userId/buscar", (req, res) =>
-    enqueue("buscar_lead.sh", [
-        req.params.userId, 
-        String(req.body.numero)
-    ], res)
-);
 
 // PEGAR NÚMERO
 app.post("/:userId/numeroWpp", (req, res) =>
@@ -277,21 +264,6 @@ app.post("/:userId/limparnotificacoes", (req, res) => {
 // TEXTO
 app.post("/:userId/texto", (req, res) =>
     enqueue("enviar_texto.sh", [
-        req.params.userId,
-        String(req.body.msg),
-        String(req.body.lead)
-    ], res)
-);
-
-app.post("/:userId/texto2", (req, res) =>
-    enqueue("enviar_texto2.sh", [
-        req.params.userId,
-        String(req.body.msg)
-    ], res)
-);
-
-app.post("/:userId/texto3", (req, res) =>
-    enqueue("enviar_texto3.sh", [
         req.params.userId,
         String(req.body.msg),
         String(req.body.lead)
@@ -337,21 +309,6 @@ app.post("/:userId/midia", (req, res) =>
     ], res)
 );
 
-// CALIBRAR
-app.post("/:userId/calibrar", (req, res) =>
-    enqueue("calibrar.sh", [req.params.userId], res)
-);
-
-// AUTOCLIQUE
-app.post("/:userId/clique", (req, res) =>
-    enqueue("autoclique.sh", [
-        req.params.userId,
-        String(req.body.x),
-        String(req.body.y),
-        String(req.body.delay || "")
-    ], res)
-);
-
 // PIX
 app.post("/:userId/pix", (req, res) =>
     enqueue("pix.sh", [
@@ -360,15 +317,7 @@ app.post("/:userId/pix", (req, res) =>
     ], res)
 );
 
-// CHAT
-app.post("/:userId/chat", (req, res) =>
-    enqueue("chat.sh", [
-        req.params.userId,
-        String(req.body.lead || "")
-    ], res)
-);
-
-// 🆕 REJEITAR CALL (COM PRIORIDADE E SUPORTE A BODY)
+// REJEITAR CALL (COM PRIORIDADE E SUPORTE A BODY)
 app.post("/:userId/rejeitarcall", (req, res) =>
     enqueue("rejeitacall.sh", [
         req.params.userId,              // $1: User ID
@@ -411,7 +360,7 @@ app.post("/clearqueue", (req, res) => {
 // ============================================================================
 app.listen(PORT, () => {
     console.log("==================================================");
-    console.log("🚀 ZAP SERVER v5.4 (Multi-User + Priority) INICIADO");
+    console.log("🚀 ZAP SERVER v5.5 (Multi-User + Priority) INICIADO");
     console.log("📍 Porta:", PORT);
     console.log("🔐 Execução ROOT/SUDO");
     console.log("👥 Modo Multi-Usuário Ativo (/:userId/rota)");

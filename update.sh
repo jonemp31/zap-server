@@ -22,6 +22,7 @@ SCRIPTS=(
     "enviar_texto.sh"
     "fazer_ligacao.sh"
     "gravar_fake.sh"
+    "intent_audio.sh"
     "pegar_numero.sh"
     "pix.sh"
     "rejeitacall.sh"

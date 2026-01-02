@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
 # =====================================================================
-# enviar_midia.sh — V3.3: MULTI-USER + PATH SWAP FIX
+# enviar_midia.sh — V3.5: MULTI-USER + POPUP CHECK (ATUALIZADO)
 # =====================================================================
 
 # --- 1. VALIDAÇÕES INICIAIS ---
@@ -16,6 +16,7 @@ COORD_BTN_VIEW_ONCE="986 1631"
 COORD_BTN_ENVIAR="988 1820"
 COORD_BTN_VOLTAR="70 80"
 COORD_VIDEO_FOCUS="821 1048.5"
+COORD_BTN_POPUP_OK="533 1627" # Coordenada atualizada
 PKG_WHATSAPP="com.whatsapp.w4b"
 
 # O script trabalha sempre no 0 (onde o Termux tem controle total)
@@ -270,52 +271,56 @@ fi
 sleep 1
 
 # ==========================================================
-# PASSO 3: VIEW ONCE (COM DETECÇÃO DE POPUP VIA OCR)
+# PASSO 3: VIEW ONCE & VERIFICAÇÃO DE POPUP (ATUALIZADO)
 # ==========================================================
 if [ "$VIEW_ONCE" = "true" ]; then
     echo "👁️ Ativando View Once..."
     input tap $COORD_BTN_VIEW_ONCE
-    sleep 0.8
+    sleep 0.5
     
-    # --- OCR: Verificar se popup de privacidade apareceu ---
-    echo "🔍 Verificando popup de privacidade..."
+    # --- INÍCIO DA NOVA LÓGICA DE POPUP ---
+    echo "🔎 Verificando possível Popup..."
     
-    SCREENSHOT_PATH="/sdcard/viewonce_check_$RANDOM.png"
-    screencap -p "$SCREENSHOT_PATH" 2>/dev/null
+    # Define caminhos temporários para o OCR (usando ID para evitar conflito)
+    IMG_SCREEN="/data/local/tmp/vo_check_$USER_ID.png"
+    IMG_LOCAL="$TMP_MEDIA_DIR/vo_check_$USER_ID.png"
+    TXT_RESULT="$TMP_MEDIA_DIR/vo_result_$USER_ID"
     
-    if [ -f "$SCREENSHOT_PATH" ]; then
-        # OCR com Tesseract (português)
-        OCR_TEXT=$(tesseract "$SCREENSHOT_PATH" stdout -l por 2>/dev/null | tr '[:upper:]' '[:lower:]')
-        rm -f "$SCREENSHOT_PATH"
+    # 1. Printa a tela
+    su -c "screencap -p $IMG_SCREEN"
+    cp "$IMG_SCREEN" "$IMG_LOCAL" 2>/dev/null || su -c "cat $IMG_SCREEN" > "$IMG_LOCAL"
+    
+    # 2. Executa Tesseract (OCR)
+    if command -v tesseract &> /dev/null; then
+        tesseract "$IMG_LOCAL" "$TXT_RESULT" -l por >/dev/null 2>&1
+        CONTEUDO_TELA=$(cat "${TXT_RESULT}.txt" 2>/dev/null | tr '[:upper:]' '[:lower:]')
         
-        # Procurar por frases do popup
-        POPUP_DETECTADO=false
+        # 3. Verifica as frases
+        DETECTOU_POPUP=false
         
-        if echo "$OCR_TEXT" | grep -q "mensagens de visualiza"; then
-            POPUP_DETECTADO=true
-            echo "📋 Popup detectado: 'mensagens de visualização'"
-        elif echo "$OCR_TEXT" | grep -q "fotos, videos ou mensagens"; then
-            POPUP_DETECTADO=true
-            echo "📋 Popup detectado: 'fotos, vídeos ou mensagens'"
-        elif echo "$OCR_TEXT" | grep -q "maior privacidade"; then
-            POPUP_DETECTADO=true
-            echo "📋 Popup detectado: 'maior privacidade'"
-        elif echo "$OCR_TEXT" | grep -q "destinatario nao pode"; then
-            POPUP_DETECTADO=true
-            echo "📋 Popup detectado: 'destinatário não pode'"
+        if [[ "$CONTEUDO_TELA" == *"as mensagens de visualização única"* ]] || \
+           [[ "$CONTEUDO_TELA" == *"as fotos, vídeos ou mensagens"* ]] || \
+           [[ "$CONTEUDO_TELA" == *"para maior privacidade, o destinatário não pode compartilhar"* ]]; then
+            DETECTOU_POPUP=true
         fi
         
-        if [ "$POPUP_DETECTADO" = "true" ]; then
-            echo "✅ Fechando popup de privacidade..."
-            sleep 0.5
-            input tap 540 1630  # Botão OK do popup
+        # Se detectou, executa a ação de fechar
+        if [ "$DETECTOU_POPUP" = "true" ]; then
+            echo "⚠️ Popup detectado! Clicando em OK..."
+            sleep 1 # Tempo aumentado conforme pedido
+            input tap $COORD_BTN_POPUP_OK
             sleep 0.6
         else
-            echo "✅ Nenhum popup detectado, continuando..."
+            echo "✅ Nenhum popup detectado."
         fi
     else
-        echo "⚠️ Falha ao capturar tela, continuando..."
+        echo "⚠️ Tesseract não instalado. Pulando verificação OCR."
     fi
+    
+    # Limpeza dos arquivos de verificação
+    rm -f "$IMG_LOCAL" "${TXT_RESULT}.txt" 2>/dev/null
+    su -c "rm -f $IMG_SCREEN" 2>/dev/null
+    # --- FIM DA NOVA LÓGICA DE POPUP ---
 fi
 
 # ==========================================================

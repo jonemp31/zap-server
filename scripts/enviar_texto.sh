@@ -125,5 +125,9 @@ sleep $DELAY_VOLTAR
 echo "🔙 Pressionando Voltar..."
 input tap $COORD_BTN_VOLTAR
 
+# Garantia extra: keyevent BACK caso o tap falhe
+sleep 0.3
+input keyevent 4
+
 echo "✅ Concluído."
 exit 0

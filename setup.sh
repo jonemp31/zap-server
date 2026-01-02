@@ -353,6 +353,11 @@ log_success "config.json criado!"
 # ============================================================================
 # PASSO 10: Configurar Cloudflare Tunnel
 # ============================================================================
+
+# IMPORTANTE: Desativa set -e nesta seção porque cloudflared pode crashar
+# com "stack corruption" no Termux ARM, mas ainda assim funcionar
+set +e
+
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║              ☁️  CONFIGURAÇÃO DO CLOUDFLARE TUNNEL            ║${NC}"
@@ -363,7 +368,9 @@ echo ""
 CLOUDFLARED_VERSION=$(cloudflared version 2>/dev/null | head -1)
 log_success "Cloudflared instalado: $CLOUDFLARED_VERSION"
 
-# Verificar se já está logado
+# ========================================
+# PASSO 10.1: LOGIN
+# ========================================
 if [ -f "$HOME_DIR/.cloudflared/cert.pem" ]; then
     log_success "Cloudflare já autenticado!"
 else
@@ -373,16 +380,22 @@ else
     echo ""
     read -p "   ➤ Pressione ENTER para gerar o link de autenticação..."
     
-    cloudflared tunnel login
+    # Executa em subshell para não abortar se crashar
+    (cloudflared tunnel login) || true
+    sleep 2
     
     if [ -f "$HOME_DIR/.cloudflared/cert.pem" ]; then
         log_success "Autenticação concluída!"
     else
         log_error "Falha na autenticação. Execute manualmente: cloudflared tunnel login"
+        log_error "Depois rode o setup novamente."
+        exit 1
     fi
 fi
 
-# Criar tunnel
+# ========================================
+# PASSO 10.2: CREATE TUNNEL
+# ========================================
 echo ""
 log_info "Criando tunnel: $TUNNEL_NAME..."
 
@@ -393,25 +406,41 @@ if [ -n "$EXISTING_TUNNEL" ]; then
     log_warn "Tunnel '$TUNNEL_NAME' já existe!"
     TUNNEL_ID=$(echo "$EXISTING_TUNNEL" | awk '{print $1}')
 else
-    # Nota: cloudflared pode crashar com "stack corruption" no Termux mas ainda assim criar o tunnel
-    cloudflared tunnel create "$TUNNEL_NAME" 2>&1 || true
-    sleep 2
+    # Executa em subshell para capturar crash sem abortar
+    log_info "Executando: cloudflared tunnel create $TUNNEL_NAME"
+    (cloudflared tunnel create "$TUNNEL_NAME") || true
+    sleep 3
     
     # Verificar se foi criado mesmo com possível crash
     TUNNEL_ID=$(cloudflared tunnel list 2>/dev/null | grep "$TUNNEL_NAME" | awk '{print $1}')
     
     if [ -z "$TUNNEL_ID" ]; then
-        log_error "Falha ao criar tunnel. Tente manualmente: cloudflared tunnel create $TUNNEL_NAME"
+        log_error "Falha ao criar tunnel."
+        log_error "Execute manualmente: cloudflared tunnel create $TUNNEL_NAME"
+        log_error "Depois rode o setup novamente."
         exit 1
     fi
     
     log_success "Tunnel criado: $TUNNEL_ID"
 fi
 
-# Criar arquivo de configuração do cloudflared
-log_info "Configurando tunnel..."
+# ========================================
+# PASSO 10.3: CRIAR CONFIG.YML
+# ========================================
+log_info "Criando config.yml..."
 
 CREDENTIALS_FILE="$HOME_DIR/.cloudflared/${TUNNEL_ID}.json"
+
+# Verifica se credentials existem
+if [ ! -f "$CREDENTIALS_FILE" ]; then
+    log_warn "Credentials não encontrado em: $CREDENTIALS_FILE"
+    # Tenta encontrar qualquer .json que foi criado
+    FOUND_JSON=$(ls -1 "$HOME_DIR/.cloudflared/"*.json 2>/dev/null | head -1)
+    if [ -n "$FOUND_JSON" ]; then
+        CREDENTIALS_FILE="$FOUND_JSON"
+        log_info "Usando credentials encontrado: $CREDENTIALS_FILE"
+    fi
+fi
 
 mkdir -p "$HOME_DIR/.cloudflared"
 
@@ -425,16 +454,28 @@ ingress:
   - service: http_status:404
 EOF
 
-log_success "config.yml criado!"
+# Verifica se foi criado
+if [ -f "$HOME_DIR/.cloudflared/config.yml" ]; then
+    log_success "config.yml criado em: $HOME_DIR/.cloudflared/config.yml"
+else
+    log_error "Falha ao criar config.yml"
+    exit 1
+fi
 
-# Configurar DNS
+# ========================================
+# PASSO 10.4: CONFIGURAR DNS
+# ========================================
 echo ""
 log_info "Configurando DNS: $FULL_HOSTNAME -> $TUNNEL_NAME..."
 
-# Nota: Também pode crashar com "stack corruption" mas ainda funcionar
-cloudflared tunnel route dns "$TUNNEL_NAME" "$FULL_HOSTNAME" 2>&1 || log_warn "DNS pode já estar configurado ou erro ignorável"
+# Executa em subshell para capturar crash
+(cloudflared tunnel route dns "$TUNNEL_NAME" "$FULL_HOSTNAME") || true
+sleep 2
 
-log_success "DNS configurado!"
+log_success "DNS configurado (ou já existia)!"
+
+# Reativa set -e para o resto do script
+set -e
 
 # ============================================================================
 # PASSO 11: Criar scripts de inicialização

@@ -256,7 +256,7 @@ log_success "Diretório criado: $INSTALL_DIR"
 echo ""
 log_info "Baixando arquivos do servidor..."
 
-FILES=("server.js" "sentinela.js")
+FILES=("server.js" "sentinela.js" "list_users.sh")
 
 for file in "${FILES[@]}"; do
     log_info "Baixando $file..."

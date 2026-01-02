@@ -278,7 +278,8 @@ app.post("/:userId/limparnotificacoes", (req, res) => {
 app.post("/:userId/texto", (req, res) =>
     enqueue("enviar_texto.sh", [
         req.params.userId,
-        String(req.body.msg)
+        String(req.body.msg),
+        String(req.body.lead)
     ], res)
 );
 

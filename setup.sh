@@ -276,18 +276,19 @@ else
     log_success "PM2 instalado!"
 fi
 
-# --- 4.7: Tesseract PT-BR (Download direto do GitHub - pkg às vezes falha) ---
-log_info "Instalando dados do Tesseract (Português)..."
+# --- 4.7: Tesseract PT-BR (tessdata_fast - compatível com x86_64) ---
+log_info "Instalando dados do Tesseract (Português - versão fast)..."
+
+# Remove versão antiga se existir (pode ser a versão pesada que causa crash)
+rm -f "$PREFIX/share/tessdata/por.traineddata" 2>/dev/null
+
+curl -L -o "$PREFIX/share/tessdata/por.traineddata" \
+    https://github.com/tesseract-ocr/tessdata_fast/raw/main/por.traineddata 2>/dev/null
+
 if [ -f "$PREFIX/share/tessdata/por.traineddata" ]; then
-    log_success "Tesseract PT-BR já instalado!"
+    log_success "Tesseract PT-BR (fast) baixado com sucesso!"
 else
-    curl -L -o "$PREFIX/share/tessdata/por.traineddata" \
-        https://github.com/tesseract-ocr/tessdata/raw/main/por.traineddata 2>/dev/null
-    if [ -f "$PREFIX/share/tessdata/por.traineddata" ]; then
-        log_success "Tesseract PT-BR baixado com sucesso!"
-    else
-        log_warn "Falha ao baixar tessdata português. OCR pode não funcionar."
-    fi
+    log_warn "Falha ao baixar tessdata português. OCR pode não funcionar."
 fi
 
 # ============================================================================

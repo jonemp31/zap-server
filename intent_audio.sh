@@ -57,6 +57,9 @@ if ! ffmpeg -y -loglevel error -i "$ARQUIVO_ORIGINAL" \
     exit 1
 fi
 
+# Garante permissão de leitura para todos os usuários
+chmod 644 "$ARQUIVO_MODIFICADO"
+
 echo "✅ Fingerprint aplicada (Bitrate: ${BITRATE})"
 
 # ==========================================================

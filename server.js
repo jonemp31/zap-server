@@ -225,6 +225,42 @@ app.get("/state", (req, res) => {
     });
 });
 
+// LISTAR USUÁRIOS DO ANDROID (NÃO USA FILA - EXECUÇÃO DIRETA)
+app.get("/users", (req, res) => {
+    execFile(
+        "sudo",
+        [TERMUX_BASH, `${HOME_PATH}/list_users.sh`],
+        { timeout: 10000 },
+        (error, stdout = "", stderr = "") => {
+            if (error) {
+                return res.status(500).json({
+                    success: false,
+                    error: stderr || error.message
+                });
+            }
+
+            // Parseia a saída: UserInfo{0:Proprietário:c13} -> extrai o número
+            const users = {};
+            const lines = stdout.split('\n');
+            let userCount = 0;
+
+            lines.forEach(line => {
+                const match = line.match(/UserInfo\{(\d+):/);
+                if (match && match[1]) {
+                    userCount++;
+                    users[`UserInfo${userCount}`] = parseInt(match[1]);
+                }
+            });
+
+            return res.json({
+                success: true,
+                total: userCount,
+                ...users
+            });
+        }
+    );
+});
+
 // ============================================================================
 // ROTAS DE AÇÃO (COM :userId)
 // ============================================================================

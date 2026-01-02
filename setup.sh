@@ -230,10 +230,19 @@ for pkg in "${PACKAGES[@]}"; do
     fi
 done
 
-# Tesseract PT-BR
+# Tesseract PT-BR (Download direto do GitHub - pkg às vezes falha)
 log_info "Instalando dados do Tesseract (Português)..."
-pkg install -y tesseract-data-por 2>/dev/null || true
-log_success "Tesseract PT-BR OK!"
+if [ -f "$PREFIX/share/tessdata/por.traineddata" ]; then
+    log_success "Tesseract PT-BR já instalado!"
+else
+    curl -L -o "$PREFIX/share/tessdata/por.traineddata" \
+        https://github.com/tesseract-ocr/tessdata/raw/main/por.traineddata 2>/dev/null
+    if [ -f "$PREFIX/share/tessdata/por.traineddata" ]; then
+        log_success "Tesseract PT-BR baixado com sucesso!"
+    else
+        log_warn "Falha ao baixar tessdata português. OCR pode não funcionar."
+    fi
+fi
 
 # ============================================================================
 # PASSO 5: Criar Diretório do Projeto

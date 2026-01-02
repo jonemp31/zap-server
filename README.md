@@ -49,19 +49,21 @@ pm2 stop all        # Parar serviços
 
 ```
 zap-server/
-├── setup.sh           # Instalador automático
-├── server.js          # API Express (porta 3000)
-├── sentinela.js       # Monitor de notificações
-└── scripts/
-    ├── abrir_conversa.sh
-    ├── enviar_midia.sh
-    ├── enviar_texto.sh
-    ├── fazer_ligacao.sh
-    ├── gravar_fake.sh
-    ├── pegar_numero.sh
-    ├── pix.sh
-    ├── rejeitacall.sh
-    └── salvar_contato.sh
+├── setup.sh              # Instalador automático
+├── update.sh             # Atualizador via GitHub
+├── server.js             # API Express (porta 3000)
+├── sentinela.js          # Monitor de notificações
+├── list_users.sh         # Lista usuários Android
+├── abrir_conversa.sh
+├── enviar_midia.sh
+├── enviar_texto.sh
+├── fazer_ligacao.sh
+├── gravar_fake.sh        # Áudio User 0
+├── intent_audio.sh       # Áudio Clones
+├── pegar_numero.sh
+├── pix.sh
+├── rejeitacall.sh
+└── salvar_contato.sh
 ```
 
 ## 🌐 Expor na Internet

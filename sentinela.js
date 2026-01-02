@@ -1,22 +1,40 @@
 /**
- * SENTINELA PRO V8.1 - PARSER FIX (Node.js Edition)
+ * SENTINELA PRO V8.2 - CONFIG DINÂMICO (Node.js Edition)
  * - Engine: Dumpsys + SED
  * - Fix: Parsing robusto para remover "String(...)" e encontrar mensagens ocultas
  * - Logic: V7 Stable TTL Core
+ * - NEW: Lê DEVICE_NAME do config.json (mesmo nome do tunnel)
  */
 
 const { exec } = require('child_process');
 const axios = require('axios');
 const util = require('util');
+const fs = require('fs');
+const path = require('path');
 
 const execPromise = util.promisify(exec);
 
-// --- CONFIGURAÇÃO ---
+// --- CARREGAR CONFIG.JSON ---
+let externalConfig = {};
+const configPath = path.join(__dirname, 'config.json');
+
+try {
+    if (fs.existsSync(configPath)) {
+        externalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        console.log(`[CONFIG] ✅ Carregado config.json - Device: ${externalConfig.device?.name || 'N/A'}`);
+    } else {
+        console.log('[CONFIG] ⚠️ config.json não encontrado, usando valores padrão');
+    }
+} catch (err) {
+    console.error('[CONFIG] ❌ Erro ao ler config.json:', err.message);
+}
+
+// --- CONFIGURAÇÃO (com fallbacks) ---
 const CONFIG = {
-    WEBHOOK_DATA: "https://webhook-dev.zapsafe.work/webhook/whatsapp4mumu",
-    WEBHOOK_CLEAN: "https://webhook-dev.zapsafe.work/webhook/limparnotificacaozapmu",
-    APP_ALVO_PKG: "com.whatsapp.w4b", 
-    DEVICE_NAME: "apizapmumu1",
+    WEBHOOK_DATA: externalConfig.webhooks?.data || "https://webhook-dev.zapsafe.work/webhook/whatsapp4mumu",
+    WEBHOOK_CLEAN: externalConfig.webhooks?.clean || "https://webhook-dev.zapsafe.work/webhook/limparnotificacaozapmu",
+    APP_ALVO_PKG: externalConfig.device?.whatsapp_pkg || "com.whatsapp.w4b", 
+    DEVICE_NAME: externalConfig.device?.name || "device1",
     DELAY_POLL: 2000,
     TIMEOUT_CLEAN: 30000,
     MAX_RETRIES: 3,

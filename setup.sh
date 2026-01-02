@@ -394,7 +394,7 @@ else
 fi
 
 # ========================================
-# PASSO 10.2: CREATE TUNNEL
+# PASSO 10.2: CREATE TUNNEL (PARA AQUI)
 # ========================================
 echo ""
 log_info "Criando tunnel: $TUNNEL_NAME..."
@@ -405,231 +405,57 @@ EXISTING_TUNNEL=$(cloudflared tunnel list 2>/dev/null | grep "$TUNNEL_NAME" || t
 if [ -n "$EXISTING_TUNNEL" ]; then
     log_warn "Tunnel '$TUNNEL_NAME' já existe!"
     TUNNEL_ID=$(echo "$EXISTING_TUNNEL" | awk '{print $1}')
+    log_success "ID do Tunnel: $TUNNEL_ID"
 else
-    # Executa em subshell para capturar crash sem abortar
     log_info "Executando: cloudflared tunnel create $TUNNEL_NAME"
-    (cloudflared tunnel create "$TUNNEL_NAME") || true
-    sleep 3
-    
-    # Verificar se foi criado mesmo com possível crash
-    TUNNEL_ID=$(cloudflared tunnel list 2>/dev/null | grep "$TUNNEL_NAME" | awk '{print $1}')
-    
-    if [ -z "$TUNNEL_ID" ]; then
-        log_error "Falha ao criar tunnel."
-        log_error "Execute manualmente: cloudflared tunnel create $TUNNEL_NAME"
-        log_error "Depois rode o setup novamente."
-        exit 1
-    fi
-    
-    log_success "Tunnel criado: $TUNNEL_ID"
-fi
-
-# ========================================
-# PASSO 10.3: CRIAR CONFIG.YML
-# ========================================
-log_info "Criando config.yml..."
-
-CREDENTIALS_FILE="$HOME_DIR/.cloudflared/${TUNNEL_ID}.json"
-
-# Verifica se credentials existem
-if [ ! -f "$CREDENTIALS_FILE" ]; then
-    log_warn "Credentials não encontrado em: $CREDENTIALS_FILE"
-    # Tenta encontrar qualquer .json que foi criado
-    FOUND_JSON=$(ls -1 "$HOME_DIR/.cloudflared/"*.json 2>/dev/null | head -1)
-    if [ -n "$FOUND_JSON" ]; then
-        CREDENTIALS_FILE="$FOUND_JSON"
-        log_info "Usando credentials encontrado: $CREDENTIALS_FILE"
-    fi
-fi
-
-mkdir -p "$HOME_DIR/.cloudflared"
-
-cat > "$HOME_DIR/.cloudflared/config.yml" << EOF
-tunnel: $TUNNEL_ID
-credentials-file: $CREDENTIALS_FILE
-
-ingress:
-  - hostname: $FULL_HOSTNAME
-    service: http://localhost:3000
-  - service: http_status:404
-EOF
-
-# Verifica se foi criado
-if [ -f "$HOME_DIR/.cloudflared/config.yml" ]; then
-    log_success "config.yml criado em: $HOME_DIR/.cloudflared/config.yml"
-else
-    log_error "Falha ao criar config.yml"
-    exit 1
-fi
-
-# ========================================
-# PASSO 10.4: CONFIGURAR DNS
-# ========================================
-echo ""
-log_info "Configurando DNS: $FULL_HOSTNAME -> $TUNNEL_NAME..."
-
-# Executa em subshell para capturar crash
-(cloudflared tunnel route dns "$TUNNEL_NAME" "$FULL_HOSTNAME") || true
-sleep 2
-
-log_success "DNS configurado (ou já existia)!"
-
-# Reativa set -e para o resto do script
-set -e
-
-# ============================================================================
-# PASSO 11: Criar scripts de inicialização
-# ============================================================================
-echo ""
-log_info "Criando scripts de inicialização..."
-
-# Script para iniciar tudo
-cat > "$INSTALL_DIR/start.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-cd $INSTALL_DIR
-termux-wake-lock 2>/dev/null
-pm2 start server.js --name "zap-server" --time 2>/dev/null || pm2 restart zap-server
-pm2 start sentinela.js --name "sentinela" --time 2>/dev/null || pm2 restart sentinela
-pm2 start "cloudflared tunnel run $TUNNEL_NAME" --name "cloudflare" --time 2>/dev/null || pm2 restart cloudflare
-pm2 save
-echo "✅ Todos os serviços iniciados!"
-echo "📡 API: https://$FULL_HOSTNAME"
-pm2 list
-EOF
-chmod +x "$INSTALL_DIR/start.sh"
-
-# Script para parar tudo
-cat > "$INSTALL_DIR/stop.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-pm2 stop all
-termux-wake-unlock 2>/dev/null
-echo "🛑 Todos os serviços parados!"
-EOF
-chmod +x "$INSTALL_DIR/stop.sh"
-
-# Script para reiniciar
-cat > "$INSTALL_DIR/restart.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-$INSTALL_DIR/stop.sh
-sleep 2
-$INSTALL_DIR/start.sh
-EOF
-chmod +x "$INSTALL_DIR/restart.sh"
-
-# Script para ver logs
-cat > "$INSTALL_DIR/logs.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-pm2 logs --lines 50
-EOF
-chmod +x "$INSTALL_DIR/logs.sh"
-
-# Script para atualizar do GitHub
-cat > "$INSTALL_DIR/update.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-cd $INSTALL_DIR
-echo "📥 Baixando atualizações..."
-curl -sSL $REPO_URL/server.js -o server.js
-curl -sSL $REPO_URL/sentinela.js -o sentinela.js
-for script in abrir_conversa.sh enviar_midia.sh enviar_texto.sh fazer_ligacao.sh gravar_fake.sh pegar_numero.sh pix.sh rejeitacall.sh salvar_contato.sh; do
-    curl -sSL $REPO_URL/scripts/\$script -o \$script 2>/dev/null && chmod +x \$script
-done
-pm2 restart all
-echo "✅ Atualização concluída!"
-EOF
-chmod +x "$INSTALL_DIR/update.sh"
-
-log_success "Scripts de controle criados!"
-
-# ============================================================================
-# PASSO 12: Configurar auto-start
-# ============================================================================
-echo ""
-log_info "Configurando auto-start..."
-
-mkdir -p "$HOME_DIR/.termux/boot"
-
-cat > "$HOME_DIR/.termux/boot/start-zap-server.sh" << EOF
-#!/data/data/com.termux/files/usr/bin/bash
-sleep 15
-cd $INSTALL_DIR
-./start.sh
-EOF
-chmod +x "$HOME_DIR/.termux/boot/start-zap-server.sh"
-
-log_success "Auto-start configurado!"
-
-# ============================================================================
-# PASSO 13: Iniciar Serviços
-# ============================================================================
-echo ""
-log_info "Iniciando serviços..."
-
-cd "$INSTALL_DIR"
-
-pm2 delete all 2>/dev/null || true
-pm2 start server.js --name "zap-server" --time
-pm2 start sentinela.js --name "sentinela" --time
-pm2 start "cloudflared tunnel run $TUNNEL_NAME" --name "cloudflare" --time
-pm2 save
-
-log_success "PM2 iniciado (server + sentinela + cloudflare)!"
-
-# ============================================================================
-# VERIFICAÇÃO FINAL
-# ============================================================================
-echo ""
-echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║                    🔍 VERIFICAÇÃO FINAL                       ║${NC}"
-echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-echo -e "${YELLOW}Dependências:${NC}"
-node -v && echo -e "  ${GREEN}✓${NC} Node.js OK"
-python3 --version 2>/dev/null && echo -e "  ${GREEN}✓${NC} Python OK"
-ffmpeg -version 2>/dev/null | head -1 && echo -e "  ${GREEN}✓${NC} FFmpeg OK"
-tesseract --version 2>&1 | head -1 && echo -e "  ${GREEN}✓${NC} Tesseract OK"
-cloudflared version 2>/dev/null | head -1 && echo -e "  ${GREEN}✓${NC} Cloudflared OK"
-
-echo ""
-echo -e "${YELLOW}Serviços PM2:${NC}"
-pm2 list
-
-echo ""
-echo -e "${YELLOW}Teste de conexão local:${NC}"
-sleep 3
-if curl -s http://localhost:3000/health | jq . 2>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} API local respondendo!"
-else
-    echo -e "  ${YELLOW}!${NC} API ainda inicializando..."
+    cloudflared tunnel create "$TUNNEL_NAME"
 fi
 
 # ============================================================================
-# INSTRUÇÕES FINAIS
+# 🛑 PARADA AUTOMÁTICA - CONTINUAR MANUALMENTE
 # ============================================================================
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║              🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!             ║${NC}"
+echo -e "${GREEN}║         ✅ INSTALAÇÃO AUTOMÁTICA CONCLUÍDA!                   ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${CYAN}📁 Diretório:${NC}     $INSTALL_DIR"
-echo -e "${CYAN}🌐 API Local:${NC}     http://localhost:3000"
-echo -e "${CYAN}🌍 API Pública:${NC}   https://${FULL_HOSTNAME}"
-echo -e "${CYAN}📱 Device:${NC}        $DEVICE_NAME"
-echo -e "${CYAN}☁️  Tunnel:${NC}        $TUNNEL_NAME"
+echo -e "${CYAN}📁 Diretório:${NC}       $INSTALL_DIR"
+echo -e "${CYAN}📱 Device:${NC}          $DEVICE_NAME"
+echo -e "${CYAN}☁️  Tunnel:${NC}          $TUNNEL_NAME"
+echo -e "${CYAN}🌍 Hostname:${NC}        $FULL_HOSTNAME"
 echo ""
-echo -e "${YELLOW}🔧 COMANDOS ÚTEIS:${NC}"
+echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${YELLOW}   ⚠️  CONTINUE MANUALMENTE OS PASSOS ABAIXO:${NC}"
+echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo "   ./start.sh      # Iniciar todos os serviços"
-echo "   ./stop.sh       # Parar todos os serviços"
-echo "   ./restart.sh    # Reiniciar tudo"
-echo "   ./logs.sh       # Ver logs do PM2"
-echo "   ./update.sh     # Atualizar do GitHub"
+echo -e "${PURPLE}1. Anote o ID do tunnel que apareceu acima${NC}"
 echo ""
-echo "   pm2 status      # Ver status dos serviços"
-echo "   pm2 logs        # Ver logs em tempo real"
-echo "   pm2 logs cloudflare  # Ver logs do tunnel"
+echo -e "${PURPLE}2. Crie o config.yml (substitua TUNNEL_ID pelo ID real):${NC}"
 echo ""
-echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}   Desenvolvido com ❤️  | ZAP SERVER v5.4${NC}"
-echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "   cat > ~/.cloudflared/config.yml << 'EOF'"
+echo "   tunnel: TUNNEL_ID"
+echo "   credentials-file: /data/data/com.termux/files/home/.cloudflared/TUNNEL_ID.json"
+echo ""
+echo "   ingress:"
+echo "     - hostname: $FULL_HOSTNAME"
+echo "       service: http://localhost:3000"
+echo "     - service: http_status:404"
+echo "   EOF"
+echo ""
+echo -e "${PURPLE}3. Configure o DNS:${NC}"
+echo "   cloudflared tunnel route dns $TUNNEL_NAME $FULL_HOSTNAME"
+echo ""
+echo -e "${PURPLE}4. Teste o tunnel:${NC}"
+echo "   cloudflared tunnel run $TUNNEL_NAME"
+echo ""
+echo -e "${PURPLE}5. Inicie os serviços com PM2:${NC}"
+echo "   cd ~/zap-server"
+echo "   pm2 start server.js --name server"
+echo "   pm2 start sentinela.js --name sentinela"
+echo "   pm2 start cloudflared --name tunnel -- tunnel run $TUNNEL_NAME"
+echo "   pm2 save"
+echo ""
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}   ZAP SERVER v5.5 | Instalação parcial concluída${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""

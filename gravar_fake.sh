@@ -68,9 +68,9 @@ PASTA_ZAP="/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/
 LEAD_CLEAN=$(echo "$LEAD" | tr -d ' +-' | sed 's/^55//')
 
 echo "🚀 Abrindo WhatsApp..."
-am start -a android.intent.action.VIEW \
-    -d "https://api.whatsapp.com/send?phone=$LEAD_CLEAN" \
-    $PKG_WHATSAPP >/dev/null 2>&1
+su -c "am start --user $USER_ID -a android.intent.action.VIEW \
+    -d 'https://api.whatsapp.com/send?phone=$LEAD_CLEAN' \
+    $PKG_WHATSAPP" >/dev/null 2>&1
 sleep 3
 
 # ==========================================================

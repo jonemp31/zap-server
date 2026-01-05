@@ -238,6 +238,7 @@ async function verificarStatusZap() {
         // Tentar obter o número (retry apenas para falhas de comunicação)
         const apiOperation = async () => {
             try {
+                log(`📡 Chamando API: POST ${CONFIG.API_LOCAL}/${user.id}/numeroWpp`);
                 const response = await axios.post(
                     `${CONFIG.API_LOCAL}/${user.id}/numeroWpp`, 
                     {}, 
@@ -281,7 +282,10 @@ async function verificarStatusZap() {
                 
                 // Se foi erro HTTP (500, 404, etc), NÃO faz retry
                 if (error.response) {
-                    log(`⛔ WhatsApp ID ${user.id} retornou HTTP ${error.response.status}: ${error.response.data || error.message}`);
+                    const errorData = typeof error.response.data === 'object' 
+                        ? JSON.stringify(error.response.data) 
+                        : error.response.data;
+                    log(`⛔ WhatsApp ID ${user.id} retornou HTTP ${error.response.status}: ${errorData || error.message}`);
                     statusResult = "close";
                     numeroResult = "no";
                     return { statusResult, numeroResult };

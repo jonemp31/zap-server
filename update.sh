@@ -92,5 +92,15 @@ echo "🔄 Reiniciando serviços..."
 pm2 restart server sentinela statuszaps 2>/dev/null || pm2 restart all
 
 echo ""
+echo "🧹 Limpando logs antigos (mantendo últimos 100KB)..."
+# Limpa logs grandes mas mantém as últimas linhas
+for log in ~/.pm2/logs/*.log; do
+    if [ -f "$log" ] && [ $(stat -c%s "$log" 2>/dev/null || stat -f%z "$log" 2>/dev/null) -gt 100000 ]; then
+        tail -n 1000 "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+        echo "   ✅ Limpo: $(basename $log)"
+    fi
+done
+
+echo ""
 echo "✅ Atualização concluída!"
 pm2 list

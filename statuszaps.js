@@ -12,6 +12,7 @@ const path = require('path');
 
 // --- CONFIGURAÇÕES ---
 const CONFIG = {
+    LOG_LEVEL: process.env.LOG_LEVEL || 'INFO', // DEBUG, INFO, WARN, ERROR
     FILE_DB: path.join(__dirname, 'userativos.json'),
     CONFIG_FILE: path.join(__dirname, 'config.json'),
     API_LOCAL: 'http://localhost:3000',
@@ -29,7 +30,7 @@ const CONFIG = {
     MAX_RETRIES: 2,
     RETRY_DELAY: 5000, // 5 segundos
     WEBHOOK_TIMEOUT: 10000, // 10 segundos
-    API_TIMEOUT: 60000 // 60 segundos para OCR
+    API_TIMEOUT: 190000 // 190 segundos (maior que os 180s do server.js)
 };
 
 // Carrega device do config.json
@@ -47,10 +48,21 @@ try {
 // --- UTILITÁRIOS ---
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-const log = (msg) => {
+const log = (msg, level = 'INFO') => {
     const ts = new Date().toLocaleString('pt-BR');
-    console.log(`[${ts}] ${msg}`);
+    const levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
+    const currentLevel = levels[CONFIG.LOG_LEVEL] || 1;
+    
+    if (levels[level] >= currentLevel) {
+        console.log(`[${ts}] ${msg}`);
+    }
 };
+
+// Aliases para diferentes níveis
+const logDebug = (msg) => log(msg, 'DEBUG');
+const logInfo = (msg) => log(msg, 'INFO');
+const logWarn = (msg) => log(msg, 'WARN');
+const logError = (msg) => log(msg, 'ERROR');
 
 // Gera um delay com distribuição levemente "Gaussiana" (média ponderada)
 // Evita padrões robóticos fixos

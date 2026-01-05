@@ -19,8 +19,9 @@ const CONFIG = {
     CMD_LIST_USERS: 'su -c "pm list users"',
     PKG_W4B: 'com.whatsapp.w4b',
     CYCLE_INVENTORY: 60 * 60 * 1000, // 1 Hora
-    CYCLE_STATUS_MIN: 20 * 60 * 1000, // 20 min
-    CYCLE_STATUS_MAX: 30 * 60 * 1000, // 30 min
+    // Ciclos adaptativos por horário (serão definidos dinamicamente)
+    CYCLE_STATUS_MIN: 20 * 60 * 1000, // 20 min (padrão, será sobrescrito)
+    CYCLE_STATUS_MAX: 30 * 60 * 1000, // 30 min (padrão, será sobrescrito)
     DELAY_USER_MIN: 30 * 1000, // 30 seg
     DELAY_USER_MAX: 90 * 1000, // 90 seg
     WORK_HOUR_START: 7,
@@ -204,14 +205,21 @@ async function atualizarInventario() {
 async function verificarStatusZap() {
     log('🕵️ [FISCAL] Iniciando ciclo de verificação...');
 
-    // 1. Verificação de Horário (dinâmico baseado em CONFIG)
+    // 1. Verificação de Horário (02:00-06:59 = pausa)
     const hora = new Date().getHours();
-    // Trabalha até chegar na hora limite (ex: se END=2, às 02:00 ele já para)
-    // Pausa se: Hora for MAIOR/IGUAL ao Fim (2) E MENOR que o Início (7)
-    if (hora >= CONFIG.WORK_HOUR_END && hora < CONFIG.WORK_HOUR_START) {
-        log(`💤 [FISCAL] Horário de descanso (${CONFIG.WORK_HOUR_END}:00-${CONFIG.WORK_HOUR_START - 1}:59). Aguardando próximo ciclo...`);
-        return scheduleNextRun();
+    const horaFormatada = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    // Pausa entre 02:00 e 06:59
+    if (hora >= 2 && hora < 7) {
+        log(`💤 [FISCAL] Horário de descanso (02:00-06:59). Hora atual: ${horaFormatada}. Aguardando próximo ciclo...`);
+        // Agenda próxima verificação em 30 minutos (para checar novamente)
+        setTimeout(verificarStatusZap, 30 * 60 * 1000);
+        return;
     }
+    
+    // Log do modo atual baseado no horário
+    const modoAtual = getAdaptiveDelays();
+    log(`🕐 [FISCAL] Hora: ${horaFormatada} - Modo: ${modoAtual.label} (${Math.round(modoAtual.min/60000)}-${Math.round(modoAtual.max/60000)} min)`);
 
     // 2. Carregar Usuários
     let db = loadDb();
@@ -418,12 +426,52 @@ async function verificarStatusZap() {
     scheduleNextRun();
 }
 
+// Função para determinar delays baseado no horário
+function getAdaptiveDelays() {
+    const hora = new Date().getHours();
+    
+    // Horários de PICO (15-20 min) - 09:00-14:00 e 18:00-22:00
+    if ((hora >= 9 && hora <= 14) || (hora >= 18 && hora <= 22)) {
+        return {
+            min: 15 * 60 * 1000,  // 15 minutos
+            max: 20 * 60 * 1000,  // 20 minutos
+            label: "PICO"
+        };
+    }
+    
+    // Horários NORMAIS (20-30 min) - 07:00-08:59 e 14:01-17:59
+    if ((hora >= 7 && hora < 9) || (hora > 14 && hora < 18)) {
+        return {
+            min: 20 * 60 * 1000,  // 20 minutos
+            max: 30 * 60 * 1000,  // 30 minutos
+            label: "NORMAL"
+        };
+    }
+    
+    // Horários CALMOS (30-45 min) - 22:01-02:00
+    if ((hora > 22 && hora <= 23) || (hora >= 0 && hora < 2)) {
+        return {
+            min: 30 * 60 * 1000,  // 30 minutos
+            max: 45 * 60 * 1000,  // 45 minutos
+            label: "CALMO"
+        };
+    }
+    
+    // Padrão (não deveria chegar aqui, mas por segurança)
+    return {
+        min: 20 * 60 * 1000,
+        max: 30 * 60 * 1000,
+        label: "PADRÃO"
+    };
+}
+
 // Agendador do próximo ciclo do Fiscal
 function scheduleNextRun() {
-    const nextCycleDelay = getHumanDelay(CONFIG.CYCLE_STATUS_MIN, CONFIG.CYCLE_STATUS_MAX);
+    const adaptiveDelays = getAdaptiveDelays();
+    const nextCycleDelay = getHumanDelay(adaptiveDelays.min, adaptiveDelays.max);
     const nextTime = new Date(Date.now() + nextCycleDelay).toLocaleTimeString('pt-BR');
     
-    log(`📅 [AGENDA] Próxima verificação às ${nextTime} (daqui a ${Math.round(nextCycleDelay/60000)} min).`);
+    log(`📅 [AGENDA] Próxima verificação às ${nextTime} (${Math.round(nextCycleDelay/60000)} min) - Modo: ${adaptiveDelays.label}`);
     
     setTimeout(verificarStatusZap, nextCycleDelay);
 }

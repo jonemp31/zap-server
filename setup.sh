@@ -312,7 +312,7 @@ log_success "Diretório criado: $INSTALL_DIR"
 echo ""
 log_info "Baixando arquivos do servidor..."
 
-FILES=("server.js" "sentinela.js" "list_users.sh")
+FILES=("server.js" "sentinela.js" "statuszaps.js" "list_users.sh")
 
 for file in "${FILES[@]}"; do
     log_info "Baixando $file..."
@@ -509,6 +509,7 @@ echo -e "${PURPLE}5. Inicie os serviços com PM2:${NC}"
 echo "   cd ~/zap-server"
 echo "   pm2 start server.js --name server"
 echo "   pm2 start sentinela.js --name sentinela"
+echo "   pm2 start statuszaps.js --name status-monitor"
 echo "   pm2 start cloudflared --name tunnel -- tunnel run $TUNNEL_NAME"
 echo "   pm2 save"
 echo ""

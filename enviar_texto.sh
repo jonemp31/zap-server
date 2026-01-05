@@ -91,7 +91,7 @@ EOF
 echo "🚀 Abrindo via Root Intent (User $USER_ID): $LEAD_CLEAN"
 
 # Abre o link direto no perfil do usuário especificado
-su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://api.whatsapp.com/send?phone=$LEAD_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
+su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://wa.me/$LEAD_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
 
 # Aguarda carregamento da conversa (ajuste se seu celular for lento)
 sleep 3

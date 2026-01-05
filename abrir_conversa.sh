@@ -51,7 +51,7 @@ if [[ "$PHONE" =~ ^55 ]]; then
     echo "🚀 Abrindo via Root Intent (User $USER_ID): $PHONE_CLEAN"
     
     # Usa intent com --user para garantir abertura no perfil correto
-    su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://api.whatsapp.com/send?phone=$PHONE_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
+    su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://wa.me/$PHONE_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
     
     if [ $? -ne 0 ]; then
         echo "ERRO: Falha ao abrir WhatsApp Business"

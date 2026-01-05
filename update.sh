@@ -8,7 +8,46 @@ INSTALL_DIR="$HOME/zap-server"
 
 cd "$INSTALL_DIR" || { echo "❌ Diretório não encontrado: $INSTALL_DIR"; exit 1; }
 
-echo "📥 Baixando atualizações do GitHub..."
+# ============================================================================
+# AUTO-ATUALIZAÇÃO DO PRÓPRIO UPDATE.SH
+# ============================================================================
+echo "🔍 Verificando atualizações do update.sh..."
+
+# Baixa versão remota para comparar
+TEMP_UPDATE="/tmp/update_check_$$.sh"
+if curl -fsSL "$REPO_URL/update.sh" -o "$TEMP_UPDATE" 2>/dev/null; then
+    # Compara com a versão atual
+    if ! cmp -s "update.sh" "$TEMP_UPDATE" 2>/dev/null; then
+        echo ""
+        echo "⚠️  Nova versão do update.sh disponível!"
+        echo ""
+        read -p "📦 Deseja atualizar o update.sh agora? [Y/n]: " CONFIRM_UPDATE
+        
+        if [[ ! "$CONFIRM_UPDATE" =~ ^[Nn]$ ]]; then
+            echo "📥 Atualizando update.sh..."
+            cp "$TEMP_UPDATE" "update.sh"
+            chmod +x "update.sh"
+            rm -f "$TEMP_UPDATE"
+            echo "✅ update.sh atualizado com sucesso!"
+            echo ""
+            echo "🔄 Reiniciando com a nova versão..."
+            echo ""
+            sleep 1
+            exec bash "update.sh" "$@"
+            exit 0
+        else
+            echo "⏭️  Pulando atualização do update.sh"
+        fi
+    else
+        echo "✅ update.sh já está atualizado"
+    fi
+    rm -f "$TEMP_UPDATE"
+else
+    echo "⚠️ Não foi possível verificar atualizações do update.sh"
+fi
+
+echo ""
+echo "📥 Baixando atualizações dos outros arquivos..."
 
 # Arquivos principais
 curl -fsSL "$REPO_URL/server.js" -o server.js && echo "✅ server.js" || echo "❌ server.js FALHOU"

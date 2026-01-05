@@ -16,9 +16,14 @@ MSG="$2"
 LEAD="$3"
 
 # Validações básicas de entrada
-[ -z "$USER_ID" ] && { echo "❌ User ID não informado"; exit 1; }
-[ -z "$MSG" ] && { echo "❌ Mensagem vazia"; exit 1; }
-[ -z "$LEAD" ] && { echo "❌ Lead não informado"; exit 1; }
+[ -z "$USER_ID" ] && { echo "{\"erro\": \"user_id_nao_informado\"}"; exit 1; }
+[ -z "$LEAD" ] && { echo "{\"erro\": \"lead_nao_informado\"}"; exit 1; }
+
+# Verificação especial para mensagem vazia (não é erro, apenas aviso)
+if [ -z "$MSG" ]; then
+    echo "{\"status\": \"nao_enviado\", \"motivo\": \"mensagem_vazia\", \"lead\": \"$LEAD\"}"
+    exit 0  # Exit 0 porque não é um erro, é uma condição válida
+fi
 
 # Limpeza do número para garantir que o link funcione (remove + - e espaços)
 # Lógica inteligente para números brasileiros
@@ -136,5 +141,5 @@ sleep $DELAY_VOLTAR
 echo "🔙 Pressionando Voltar..."
 input tap $COORD_BTN_VOLTAR
 
-echo "✅ Concluído."
+echo "{\"status\": \"enviado\", \"lead\": \"$LEAD\", \"mensagem_enviada\": true}"
 exit 0

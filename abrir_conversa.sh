@@ -46,12 +46,23 @@ if [[ "$PHONE" =~ ^55 ]]; then
     echo "📱 Detectado número de telefone"
     
     # Limpeza do número (remove +, -, espaços)
-    PHONE_CLEAN=$(echo "$PHONE" | tr -d ' +-')
+    # Lógica inteligente para números brasileiros
+    PHONE_TEMP=$(echo "$PHONE" | tr -d ' -')  # Remove espaços e hífens, mas mantém o +
+    if [[ "$PHONE_TEMP" =~ ^\+55 ]]; then
+        # Se começar com +55, remove apenas o +
+        PHONE_CLEAN=$(echo "$PHONE_TEMP" | sed 's/^\+//')
+    elif [[ "$PHONE_TEMP" =~ ^55 ]]; then
+        # Se já começar com 55, mantém como está
+        PHONE_CLEAN="$PHONE_TEMP"
+    else
+        # Se não tiver 55, adiciona
+        PHONE_CLEAN="55$PHONE_TEMP"
+    fi
     
     echo "🚀 Abrindo via Root Intent (User $USER_ID): $PHONE_CLEAN"
     
     # Usa intent com --user para garantir abertura no perfil correto
-    su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://api.whatsapp.com/send?phone=$PHONE_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
+    su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://wa.me/$PHONE_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
     
     if [ $? -ne 0 ]; then
         echo "ERRO: Falha ao abrir WhatsApp Business"

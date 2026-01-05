@@ -46,12 +46,23 @@ if [ "$CALL" != "voz" ] && [ "$CALL" != "video" ]; then
 fi
 
 # Tratamento do número para Intent
-LEAD_CLEAN=$(echo "$LEAD" | tr -d ' +-' | sed 's/^55//')
+# Lógica inteligente para números brasileiros
+LEAD_TEMP=$(echo "$LEAD" | tr -d ' -')  # Remove espaços e hífens, mas mantém o +
+if [[ "$LEAD_TEMP" =~ ^\+55 ]]; then
+    # Se começar com +55, remove apenas o +
+    LEAD_CLEAN=$(echo "$LEAD_TEMP" | sed 's/^\+//')
+elif [[ "$LEAD_TEMP" =~ ^55 ]]; then
+    # Se já começar com 55, mantém como está
+    LEAD_CLEAN="$LEAD_TEMP"
+else
+    # Se não tiver 55, adiciona
+    LEAD_CLEAN="55$LEAD_TEMP"
+fi
 
 # =====================================================================
 # 1. ABRIR CONVERSA (INTENT ROOT MULTI-USER)
 # =====================================================================
-su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://api.whatsapp.com/send?phone=$LEAD_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
+su -c "am start --user $USER_ID -a android.intent.action.VIEW -d 'https://wa.me/$LEAD_CLEAN' $PKG_WHATSAPP" >/dev/null 2>&1
 sleep 3
 
 # =====================================================================

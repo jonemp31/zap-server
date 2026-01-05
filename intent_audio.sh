@@ -68,7 +68,18 @@ echo "✅ Fingerprint aplicada (Bitrate: ${BITRATE})"
 
 # ✅ CORREÇÃO: Escape o '-' ou coloque no final
 # Remove apenas: espaços, +, -, @ (SEM afetar números)
-LEAD_CLEAN=$(echo "$LEAD" | tr -d ' +@-')
+# Lógica inteligente para números brasileiros
+LEAD_TEMP=$(echo "$LEAD" | tr -d ' @-')  # Remove espaços, @ e hífens, mas mantém o +
+if [[ "$LEAD_TEMP" =~ ^\+55 ]]; then
+    # Se começar com +55, remove apenas o +
+    LEAD_CLEAN=$(echo "$LEAD_TEMP" | sed 's/^\+//')
+elif [[ "$LEAD_TEMP" =~ ^55 ]]; then
+    # Se já começar com 55, mantém como está
+    LEAD_CLEAN="$LEAD_TEMP"
+else
+    # Se não tiver 55, adiciona
+    LEAD_CLEAN="55$LEAD_TEMP"
+fi
 
 echo "📱 LEAD original: [$LEAD]"
 echo "📱 LEAD limpo: [$LEAD_CLEAN]"

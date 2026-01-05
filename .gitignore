@@ -1,0 +1,59 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# PM2
+.pm2/
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*.backup
+queue.json
+*.pid
+
+# Arquivos de OCR temporários
+ocr_*.png
+ocr_*.txt
+call_scan_*.png
+ocr_*_res
+ocr_*_$USER_ID
+
+# Arquivos de mídia temporários processados
+.tmp_media_processed/
+/storage/emulated/0/Download/.tmp_media_processed/
+
+# Arquivos de configuração local (se necessário)
+.env
+.env.local
+config.local.json
+
+# Logs
+logs/
+*.log
+
+# Outros projetos/diretórios não relacionados
+go/
+gozapscale/
+dash_js/
+github-repo/
+zapdev_final/
+

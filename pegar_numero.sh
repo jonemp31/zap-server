@@ -89,6 +89,12 @@ if [ "$IS_HOME" = "0" ]; then
     exit 1
 fi
 
+# CLIQUE EM CONVERSAS PARA NAO TER ERRO
+sleep 1.0
+input tap 129 1769
+sleep 1.0
+
+
 # =====================================================================
 # PASSO 2: NAVEGAÇÃO (ABRIR LISTA DE CONTATOS)
 # =====================================================================

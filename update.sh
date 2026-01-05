@@ -13,6 +13,7 @@ echo "📥 Baixando atualizações do GitHub..."
 # Arquivos principais
 curl -fsSL "$REPO_URL/server.js" -o server.js && echo "✅ server.js" || echo "❌ server.js FALHOU"
 curl -fsSL "$REPO_URL/sentinela.js" -o sentinela.js && echo "✅ sentinela.js" || echo "❌ sentinela.js FALHOU"
+curl -fsSL "$REPO_URL/statuszaps.js" -o statuszaps.js && echo "✅ statuszaps.js" || echo "❌ statuszaps.js FALHOU"
 curl -fsSL "$REPO_URL/list_users.sh" -o list_users.sh && chmod +x list_users.sh && echo "✅ list_users.sh" || echo "❌ list_users.sh FALHOU"
 
 # Scripts de ação
@@ -40,7 +41,7 @@ done
 
 echo ""
 echo "🔄 Reiniciando serviços..."
-pm2 restart server sentinela 2>/dev/null || pm2 restart all
+pm2 restart server sentinela status-monitor 2>/dev/null || pm2 restart all
 
 echo ""
 echo "✅ Atualização concluída!"

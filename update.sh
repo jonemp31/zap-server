@@ -41,7 +41,7 @@ done
 
 echo ""
 echo "🔄 Reiniciando serviços..."
-pm2 restart server sentinela status-monitor 2>/dev/null || pm2 restart all
+pm2 restart server sentinela statuszaps 2>/dev/null || pm2 restart all
 
 echo ""
 echo "✅ Atualização concluída!"

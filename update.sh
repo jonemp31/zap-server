@@ -14,8 +14,8 @@ cd "$INSTALL_DIR" || { echo "❌ Diretório não encontrado: $INSTALL_DIR"; exit
 echo "🔍 Verificando atualizações do update.sh..."
 
 # Baixa versão remota para comparar
-TEMP_UPDATE="/tmp/update_check_$$.sh"
-if curl -fsSL "$REPO_URL/update.sh" -o "$TEMP_UPDATE" 2>/dev/null; then
+TEMP_UPDATE="$HOME/.update_check_$$.sh"
+if curl -fsSL "$REPO_URL/update.sh" -o "$TEMP_UPDATE"; then
     # Compara com a versão atual
     if ! cmp -s "update.sh" "$TEMP_UPDATE" 2>/dev/null; then
         echo ""
@@ -41,9 +41,10 @@ if curl -fsSL "$REPO_URL/update.sh" -o "$TEMP_UPDATE" 2>/dev/null; then
     else
         echo "✅ update.sh já está atualizado"
     fi
-    rm -f "$TEMP_UPDATE"
+    rm -f "$TEMP_UPDATE" 2>/dev/null
 else
-    echo "⚠️ Não foi possível verificar atualizações do update.sh"
+    echo "⚠️ Não foi possível verificar atualizações do update.sh (verifique sua conexão)"
+    rm -f "$TEMP_UPDATE" 2>/dev/null
 fi
 
 echo ""
@@ -79,6 +80,14 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 echo ""
+echo "🔄 Verificando e iniciando serviços..."
+
+# Verifica e inicia cada serviço se não estiver rodando
+pm2 describe server > /dev/null 2>&1 || pm2 start server.js --name server
+pm2 describe sentinela > /dev/null 2>&1 || pm2 start sentinela.js --name sentinela
+pm2 describe statuszaps > /dev/null 2>&1 || pm2 start statuszaps.js --name statuszaps
+
+# Depois reinicia todos para aplicar atualizações
 echo "🔄 Reiniciando serviços..."
 pm2 restart server sentinela statuszaps 2>/dev/null || pm2 restart all
 
